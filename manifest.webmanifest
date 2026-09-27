@@ -1,0 +1,18 @@
+{
+  "name": "Português Europeu A1",
+  "short_name": "PT A1",
+  "description": "Курс португальского языка EP — уровень A1, 12 недель",
+  "start_url": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1e3a5f",
+  "theme_color": "#1e3a5f",
+  "icons": [
+    {
+      "src": "icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
