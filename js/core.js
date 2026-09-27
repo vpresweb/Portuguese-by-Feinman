@@ -55,3 +55,49 @@ window.speak=function(text){
   }catch(e){console.warn("speak:",e.message);}
 };
 try{if(window.speechSynthesis)speechSynthesis.onvoiceschanged=function(){};}catch(e){}
+
+// ── TAP-TO-SPEAK: нажатие на любой португальский текст озвучивает его (pt-PT) ──
+(function(){
+  var SAY_SEL=".pt,.conj,.pronoun,.pt-word,.pron-form,.vc-pt,.vc-ex,.d-pt,.sound-example,.week-panel em,.week-panel strong,.week-panel b,.week-panel i";
+  var CYR=/[А-Яа-яЁё]/;
+  function clean(t){
+    t=(t||"")
+      .replace(/\[[^\]]*\]/g," ")                       // IPA [..]
+      .replace(/[«»“”"]/g,"").replace(/:\s*$/,"")
+      .replace(/\([^)]*[А-Яа-яЁё][^)]*\)/g," ")          // русские пояснения в скобках
+      .replace(/_{2,}/g," … ")
+      .replace(/[·\/→=+|]/g,", ")
+      .replace(/^\s*\d+[.)]\s*/,"")
+      .replace(/\s+/g," ").trim();
+    if(!t||CYR.test(t)||!/[A-Za-zÀ-ÿ]/.test(t))return "";
+    return t;
+  }
+  function hasOwnHandler(el){
+    for(var n=el;n&&n!==document.body;n=n.parentElement){
+      if(typeof n.onclick==="function")return true;
+      if(/^(A|BUTTON|INPUT|TEXTAREA|SELECT|LABEL)$/.test(n.tagName))return true;
+    }
+    return false;
+  }
+  window.markSpeakable=function(root){
+    try{
+      var els=(root||document).querySelectorAll(SAY_SEL);
+      for(var i=0;i<els.length;i++){
+        if(clean(els[i].textContent)&&!hasOwnHandler(els[i]))els[i].classList.add("say");
+      }
+    }catch(e){console.warn("markSpeakable:",e.message);}
+  };
+  document.addEventListener("click",function(e){
+    try{
+      var el=e.target.closest&&e.target.closest(SAY_SEL);
+      if(!el||hasOwnHandler(e.target))return;
+      if(window.getSelection&&String(window.getSelection()).length>1)return;
+      var t=clean(el.textContent);
+      if(!t)return;
+      window.speak(t);
+      el.classList.add("saying");
+      setTimeout(function(){el.classList.remove("saying");},900);
+    }catch(err){console.warn("tap-to-speak:",err.message);}
+  });
+  window.addEventListener("load",function(){window.markSpeakable();});
+})();
