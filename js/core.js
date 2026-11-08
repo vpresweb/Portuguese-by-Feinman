@@ -29,29 +29,46 @@ window.goW=function(n,tabId){
     }
   }catch(e){console.warn("goW:",e.message);}
 };
+// Голос: pt-PT → любой португальский; локальный (отвечает сразу, без интернета) раньше сетевого.
+function pickPtVoice(vs){
+  var tests=[
+    function(x){return x.lang==="pt-PT";},
+    function(x){return x.lang&&x.lang.replace("_","-").startsWith("pt-PT");},
+    function(x){return x.lang&&x.lang.startsWith("pt");}
+  ];
+  for(var l=0;l<2;l++){
+    for(var i=0;i<tests.length;i++){
+      var test=tests[i],local=l===0;
+      var found=vs.find(function(x){return test(x)&&Boolean(x.localService)===local;});
+      if(found)return found;
+    }
+  }
+  return null;
+}
+// Chrome молча теряет фразу, отправленную сразу после cancel() (проверено с голосами Google),
+// поэтому после прерывания новая фраза уходит с паузой 120 мс; при быстрых нажатиях звучит последняя.
+var speakTimer=null;
 window.speak=function(text){
   try{
-    if(!window.speechSynthesis)return;
-    speechSynthesis.cancel();
-    var u=new SpeechSynthesisUtterance(text);
-    u.lang="pt-PT";u.rate=0.78;u.pitch=1.0;
-    var voices=speechSynthesis.getVoices()||[];
-    var v=voices.find(function(x){return x.lang==="pt-PT";})||
-          voices.find(function(x){return x.lang&&x.lang.startsWith("pt-PT");})||
-          voices.find(function(x){return x.lang&&x.lang.startsWith("pt");})||
-          voices.find(function(x){return x.lang&&x.lang.startsWith("pt-BR");});
-    if(v)u.voice=v;
-    if(voices.length===0){
-      speechSynthesis.onvoiceschanged=function(){
-        var vs=speechSynthesis.getVoices()||[];
-        var vv=vs.find(function(x){return x.lang==="pt-PT";})||
-               vs.find(function(x){return x.lang&&x.lang.startsWith("pt-PT");})||
-               vs.find(function(x){return x.lang&&x.lang.startsWith("pt");})||
-               vs.find(function(x){return x.lang&&x.lang.startsWith("pt-BR");});
-        if(vv)u.voice=vv;
-        speechSynthesis.speak(u);
-      };
-    }else{speechSynthesis.speak(u);}
+    if(!window.speechSynthesis||!text)return;
+    clearTimeout(speakTimer);
+    var go=function(){
+      var u=new SpeechSynthesisUtterance(text);
+      u.lang="pt-PT";u.rate=0.78;u.pitch=1.0;
+      var voices=speechSynthesis.getVoices()||[];
+      var v=pickPtVoice(voices);
+      if(v)u.voice=v;
+      if(voices.length===0){
+        speechSynthesis.onvoiceschanged=function(){
+          speechSynthesis.onvoiceschanged=function(){};
+          var vv=pickPtVoice(speechSynthesis.getVoices()||[]);
+          if(vv)u.voice=vv;
+          speechSynthesis.speak(u);
+        };
+      }else{speechSynthesis.speak(u);}
+    };
+    if(speechSynthesis.speaking||speechSynthesis.pending){speechSynthesis.cancel();speakTimer=setTimeout(go,120);}
+    else go();
   }catch(e){console.warn("speak:",e.message);}
 };
 try{if(window.speechSynthesis)speechSynthesis.onvoiceschanged=function(){};}catch(e){}
